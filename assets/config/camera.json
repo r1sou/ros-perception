@@ -1,0 +1,35 @@
+{
+    "cameras": [
+        {
+            "name": "camera0",
+            "device_id": 5,
+            "topic": {
+                "camera_info": "/ascamera_hp60c/camera_publisher/rgb0/camera_info",
+                "depth_raw": "/ascamera_hp60c/camera_publisher/depth0/image_raw",
+                "image_raw": "/ascamera_hp60c/camera_publisher/rgb0/image",
+                "point": "/ascamera_hp60c/camera_publisher/depth0/points",
+                "target_frame": "ascamera_color_0"
+            },
+            "shape": {
+                "height": 480,
+                "width": 640
+            },
+            "calibration": {
+                "cx": 334.14508056640625,
+                "cy": 241.60496520996094,
+                "fx": 572.0703735351562,
+                "fy": 571.4055786132812
+            },
+            "offset": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "rotation": {
+                "pitch": 0.0,
+                "roll": 0.0,
+                "yaw": 0.0
+            }
+        }
+    ]
+}

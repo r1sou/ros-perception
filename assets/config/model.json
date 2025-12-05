@@ -1,0 +1,21 @@
+{
+    "models": [
+        {
+            "model": "yolo",
+            "path": "weights/yolo/trash/trash.bin",
+            "param": {
+                "class_num": 1,
+                "class_names": ["trash"],
+                "conf_threshold": 0.3,
+                "iou_threshold": 0.5
+            }
+        }
+    ],
+    "detect": {
+        "trash": {
+            "obj_type": 100,
+            "obj_code": 88,
+            "depth": "center"
+        }
+    }
+}
