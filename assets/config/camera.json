@@ -1,0 +1,34 @@
+{
+    "cameras": [
+        {
+            "name": "stereo",
+            "device_id": 1,
+            "topic": {
+                "camera_info": "/image_left_raw/camera_info",
+                "left_raw": "/image_left_raw",
+                "right_raw": "/image_right_raw",
+                "combine_raw": "/image_combine_raw"
+            },
+            "shape": {
+                "height": 352,
+                "width": 640
+            },
+            "calibration": {
+                "cx": 287.43267822265625,
+                "cy": 160.80715942382812,
+                "fx": 227.80441284179688,
+                "fy": 227.80441284179688
+            },
+            "offset": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "rotation": {
+                "pitch": 0.0,
+                "roll": 0.0,
+                "yaw": 0.0
+            }
+        }
+    ]
+}
