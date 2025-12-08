@@ -660,7 +660,7 @@ public:
             time_t timestamp = time(NULL);
 
             message["time_stamp"] = timestamp;
-            message["key"] = key_;
+            message["key"] = JWTGenerator::generate(client->m_config["req_id"], client->m_config["key"]);
         }
         {
             auto data = nlohmann::json::array();
