@@ -2,13 +2,21 @@
     "models": [
         {
             "model": "yolo",
-            "path": "weights/yolo/trash/trash.bin",
+            "path": "weights/yolo/coco/yolo11n.bin",
             "param": {
-                "class_num": 1,
-                "class_names": ["trash"],
                 "conf_threshold": 0.3,
                 "iou_threshold": 0.5
-            }
+            },
+            "launch": false
+        },
+        {
+            "model": "stereonet",
+            "path": "weights/stereo/DStereoV2.4.0_int16.bin",
+            "param": {
+                "input_H": 352,
+                "input_W": 640
+            },
+            "launch": true
         }
     ],
     "detect": {
