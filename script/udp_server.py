@@ -1,12 +1,13 @@
-# import socket
-# import json
+import socket
+import json
 
-# s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-# s.bind(("192.168.3.240", 29703))
-# print("UDP bound on port 29703...")
+ip = "192.168.1.20"
+port = 29703
 
-# while True:
-#     data, addr = s.recvfrom(10240)
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.bind((ip, int(port)))
+print(f"UDP {ip} bound on port {port}...")
 
-import time
-print(time.time())
+while True:
+    data, addr = s.recvfrom(512)
+    print(data)

@@ -251,7 +251,6 @@ class PerceptionNode : public rclcpp::Node
                     if(!model_config["launch"].get<bool>()){
                         continue;
                     }
-
                     if (model_name == "yolo"){
                         auto model = std::make_shared<YOLO>(model_name);
                         model->configuration(packed_dnn_handle_, model_path, model_config["param"]);
@@ -309,7 +308,7 @@ class PerceptionNode : public rclcpp::Node
         }
     public:
         void Run(){
-            if(infer_){
+            if(infer_ && models_.size() > 0){
                 Inference();
             }
             else{
@@ -380,18 +379,23 @@ class PerceptionNode : public rclcpp::Node
                     std::chrono::system_clock::now().time_since_epoch()).count();
                 
                 std::string info = fmt::format(
-                    "camera: {}, pub time: {:.3f}, store time: {:.3f}, sub time: {:.3f}, infer time: {:.3f}",
+                    "camera: {}, pub time: {:.3f}, store time: {:.3f}, sub time: {:.3f}, infer time: {:03d}ms",
                     camera_node->camera_config["name"], 
                     img_pub_time / 1000.0, 
                     img_store_time / 1000.0, 
                     img_sub_time / 1000.0, 
-                    infer_end_time / 1000.0
+                    static_cast<int>(infer_end_time - img_sub_time)
                 );
                 // RCLCPP_INFO_STREAM(rclcpp::get_logger(""), info.c_str());
                 output->info = info;
                 udp_pool_.enqueue(
                     [this,&output,i](){
                         PublishLaser(output, i);
+                    }
+                );
+                web_pool_.enqueue(
+                    [this,&output,i](){
+                        PublishObject(output, i);
                     }
                 );
                 {
@@ -403,8 +407,9 @@ class PerceptionNode : public rclcpp::Node
                 }
             }
         }
-        // 暂时不考虑极致性能，目前正常推理
+        // 暂时不考虑更高的性能，目前正常推理
         void Inference(std::shared_ptr<TripletBuffer<sensor_msgs::msg::Image::SharedPtr>::Element> element, std::shared_ptr<ModelOutput> output){
+            // ScopeProcessTime scope_process_time("Inference");
             cv::Mat combine = cv_bridge::toCvShare(element->image, "bgr8")->image;
             cv::Mat left = combine(cv::Rect(0, 0, combine.cols, combine.rows / 2));
             cv::Mat right = combine(cv::Rect(0, combine.rows / 2, combine.cols, combine.rows / 2));
@@ -416,6 +421,7 @@ class PerceptionNode : public rclcpp::Node
                 preprocess_tasks.push_back(
                     preprocess_pool_.enqueue(
                         [this,&left,&right,i](){
+                            // ScopeProcessTime t("preprocess");
                             std::vector<cv::Mat> inputs = {left, right};
                             models_[i]->preprocess(inputs);
                         }   
@@ -424,10 +430,14 @@ class PerceptionNode : public rclcpp::Node
             }
             for(int i = 0; i < models_.size(); i++){
                 preprocess_tasks[i].get();
-                models_[i]->inference();
+                {
+                    ScopeProcessTime t("inference");
+                    models_[i]->inference();
+                }
                 postprocess_tasks.push_back(
                     postprocess_pool_.enqueue(
                         [this,&outputs,i](){
+                            // ScopeProcessTime t("postprocess");
                             models_[i]->postprocess(outputs[i]);
                         }   
                     )
@@ -446,10 +456,12 @@ class PerceptionNode : public rclcpp::Node
             }
             output->rgb = left;
         }
-
         void PublishLaser(std::shared_ptr<ModelOutput> output, int index){
-            if(!pub_laser_ && !pub_pc_){
-                RCLCPP_INFO_STREAM(rclcpp::get_logger(""), output->info.c_str());
+            // if((!pub_laser_ && !pub_pc_) || output->disparity.size() == 0){
+            //     // RCLCPP_INFO_STREAM(rclcpp::get_logger(""), output->info.c_str());
+            //     return;
+            // }
+            if(output->disparity.size() == 0){
                 return;
             }
 
@@ -519,7 +531,7 @@ class PerceptionNode : public rclcpp::Node
 
             {
                 int H = output->rgb.rows, W = output->rgb.cols;
-                ScopeProcessTime t("calculate");
+                // ScopeProcessTime t("calculate");
                 for (int v = 0; v < H; v += down_sample_ratio)
                 {
                     for (int u = 0; u < W; u += down_sample_ratio)
@@ -597,8 +609,71 @@ class PerceptionNode : public rclcpp::Node
 
             int64_t pub_time = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::system_clock::now().time_since_epoch()).count();
-            output->info += fmt::format(", pub time: {:.3f}", pub_time / 1000.0);
-            RCLCPP_INFO_STREAM(rclcpp::get_logger(""), output->info.c_str());
+            std::string info = output->info + fmt::format(", pub laser time: {:.3f}", pub_time / 1000.0);
+            RCLCPP_INFO_STREAM(rclcpp::get_logger(""), info.c_str());
+        }
+        void PublishObject(std::shared_ptr<ModelOutput> output, int index){
+            if(output->bboxes.size() == 0 || output->disparity.size() == 0){
+                // RCLCPP_INFO_STREAM(rclcpp::get_logger(""), output->info.c_str());
+                return;
+            }
+            nlohmann::json message;
+            {
+                message["cmd_code"] = 0x12;
+                message["device_id"] = camera_nodes_[index]->camera_config["device_id"].get<int>();
+                time_t timestamp = time(NULL);
+                message["time_stamp"] = timestamp;
+                message["key"] = JWTGenerator::generate(websocket_client->m_config["req_id"], websocket_client->m_config["key"]);
+            }
+            {
+                auto calib = camera_nodes_[index]->camera_config["calibration"];
+                float fx = calib["fx"].get<float>();
+                float fy = calib["fy"].get<float>();
+                float cx = calib["cx"].get<float>();
+                float cy = calib["cy"].get<float>();
+                float baseline = calib["baseline"].get<float>();
+
+                auto data = nlohmann::json::object();
+                for(int i = 0; i < output->bboxes.size(); i++){
+                    std::string name = output->names[i];
+                    if(model_config_["detect"].contains(name)){
+                        int box_center_x = static_cast<int>(output->bboxes[i][0] + (output->bboxes[i][2] - output->bboxes[i][0]) / 2.0f);
+                        int box_center_y = static_cast<int>(output->bboxes[i][1] + (output->bboxes[i][3] - output->bboxes[i][1]) / 2.0f);
+                        int box_w = static_cast<int>(output->bboxes[i][2] - output->bboxes[i][0]);
+                        int box_h = static_cast<int>(output->bboxes[i][3] - output->bboxes[i][1]);
+
+                        float X = fx * baseline / output->disparity[box_center_y * output->rgb.cols + box_center_x];
+                        float Y = (cx - box_center_x) * X / fx;
+                        float Z = (cy - box_center_y) * X / fy;
+
+                        if (X < 0.05 || X > 5.0)
+                        {
+                            continue;
+                        }
+                        float H = 1.0 * box_h * X / calib["fy"].get<float>();
+                        float W = 1.0 * box_w * X / calib["fx"].get<float>();
+
+                        data.push_back(
+                            {{"name", model_config_["detect"][name]["name"]},
+                            {"obj_type", model_config_["detect"][name]["obj_type"].get<int>()},
+                            {"obj_code", model_config_["detect"][name]["obj_code"].get<int>()},
+                            {"loc", fmt::format("{:.2f},{:.2f},{:2f}", X, Y, Z)},
+                            {"size", fmt::format("{:.2f},{:.2f}", W, H)}}
+                        );
+                    }
+                }
+                message["data"] = data;
+            }
+
+            if(!message["data"].size()){
+                return;
+            }
+            websocket_client->SendMsg(message.dump());
+
+            int64_t pub_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch()).count();
+            std::string info = output->info + fmt::format(", pub object time: {:.3f}", pub_time / 1000.0);
+            RCLCPP_INFO_STREAM(rclcpp::get_logger(""), info.c_str());
         }
 
     public:
@@ -617,8 +692,8 @@ class PerceptionNode : public rclcpp::Node
         std::string camera_config_path_, laser_config_path_, client_config_path_, model_config_path_;
         nlohmann::json camera_config_, laser_config_, client_config_, model_config_;
         bool infer_, pub_laser_, pub_pc_, show_;
-
         std::string key_;
+
     private:
         ThreadPool preprocess_pool_,postprocess_pool_;
         ThreadPool udp_pool_,web_pool_;

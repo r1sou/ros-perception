@@ -1,15 +1,6 @@
 {
     "models": [
         {
-            "model": "yolo",
-            "path": "weights/yolo/coco/yolo11n.bin",
-            "param": {
-                "conf_threshold": 0.3,
-                "iou_threshold": 0.5
-            },
-            "launch": false
-        },
-        {
             "model": "stereonet",
             "path": "weights/stereo/DStereoV2.4.0_int16.bin",
             "param": {
@@ -17,13 +8,23 @@
                 "input_W": 640
             },
             "launch": true
+        },
+        {
+            "model": "yolo",
+            "path": "weights/yolo/coco/yolo11n.bin",
+            "param": {
+                "conf_threshold": 0.3,
+                "iou_threshold": 0.5
+            },
+            "launch": true
         }
     ],
     "detect": {
-        "trash": {
+        "person": {
+            "name": "person",
             "obj_type": 100,
             "obj_code": 88,
-            "depth": "center"
+            "depth": "center-point"
         }
     }
 }
