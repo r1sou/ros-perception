@@ -75,7 +75,6 @@ function(add_project_executable target_name)
 endfunction()
 
 add_project_executable(inference
-    src/Client.cpp
     src/imgproc.cpp
     src/main.cpp
 )
