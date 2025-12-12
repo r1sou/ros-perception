@@ -412,7 +412,6 @@ public:
 #ifdef __aarch64__
         init_model();
 #endif
-
     }
     ~PerceptionNode()
     {
@@ -462,6 +461,18 @@ public:
         this->declare_parameter("show", false);
         this->get_parameter("show", show_);
         RCLCPP_INFO_STREAM(rclcpp::get_logger(""), "show: " << show_);
+
+        this->declare_parameter("save", false);
+        this->get_parameter("save", save_);
+        RCLCPP_INFO_STREAM(rclcpp::get_logger(""), "save: " << save_);
+
+        this->declare_parameter("save_dir", "");
+        this->get_parameter("save_dir", save_dir_);
+        RCLCPP_INFO_STREAM(rclcpp::get_logger(""), "save_dir: " << save_dir_);
+
+        this->declare_parameter("save_name", "");
+        this->get_parameter("save_name", save_name_);
+        RCLCPP_INFO_STREAM(rclcpp::get_logger(""), "save_name: " << save_name_);
     }
 
     void init_camera()
@@ -544,6 +555,15 @@ public:
         }
     }
 
+    void make_save_directory()
+    {
+        if (!save_){
+            return;
+        }
+        save_path_ = save_dir_ + "/" + save_name_;
+        std::filesystem::create_directories(save_path_);
+    }
+
     void Inference()
     {
 #ifdef __aarch64__
@@ -565,14 +585,21 @@ public:
     void InferenceSingleCamera(int index)
     {
         ScopeProcessTime t(fmt::format("inference camera {}", index));
-
+        
         auto element = camera_nodes_[index]->Read();
         if (!element || !element->image || !element->depth)
         {
             return;
         }
+        
         cv::Mat image = cv_bridge::toCvShare(element->image, "bgr8")->image;
         cv::Mat depth = cv_bridge::toCvShare(element->depth, "16UC1")->image;
+
+        if(save_){
+            int64_t subscribe_time = element->timestamp.count();
+            std::string filename = save_path_ + "/" + fmt::format("{:.3f}.jpg", subscribe_time / 1000.0);
+            cv::imwrite(filename, image);
+        }
 
         std::vector<YoloModelOutput> outputs(yolo_models_.size());
         std::vector<std::future<void>> preprocess_task, postprocess_task;
@@ -710,8 +737,13 @@ public:
             auto element = camera_node->Read();
             if (!element || !element->image || !element->depth)
             {
-                // RCLCPP_ERROR_STREAM(rclcpp::get_logger(""), "no message or image empty or depth empty");
                 continue;
+            }
+            int64_t subscribe_time = element->timestamp.count();
+            cv::Mat image = cv_bridge::toCvShare(element->image, "bgr8")->image;
+            if(save_){
+                std::string filename = save_path_ + "/" + fmt::format("{:.3f}.jpg", subscribe_time / 1000.0);
+                cv::imwrite(filename, image);
             }
             {
                 // int64_t rgb_publist_time = element->image->header.stamp.sec * 1000LL + element->image->header.stamp.nanosec / 1000000;
@@ -736,7 +768,6 @@ public:
             // }
             {
                 if (show_){
-                    cv::Mat image = cv_bridge::toCvShare(element->image, "bgr8")->image;
                     cv::imshow(camera_node->camera_config["name"].get<std::string>() + "_image", image);
                     cv::waitKey(1);
                 }
@@ -761,6 +792,10 @@ public:
 
 public:
     std::string root;
+    bool save_;
+    std::string save_dir_;
+    std::string save_name_;
+    std::string save_path_;
 
 private:
     std::string camera_config_path_;

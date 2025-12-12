@@ -8,7 +8,17 @@
                 "class_names": ["trash"],
                 "conf_threshold": 0.3,
                 "iou_threshold": 0.5
-            }
+            },
+            "launch": true
+        },
+        {
+            "model": "yolo",
+            "path": "weights/yolo/coco/yolo11n.bin",
+            "param": {
+                "conf_threshold": 0.3,
+                "iou_threshold": 0.5
+            },
+            "launch": false
         }
     ],
     "detect": {

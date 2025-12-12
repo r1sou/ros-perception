@@ -75,7 +75,11 @@ def generate_launch_description():
         {"name": "pub_laser", "default_value": "False"},
         {"name": "pub_pc", "default_value": "False"},
 
-        {"name": "show", "default_value": "False"}
+        {"name": "show", "default_value": "False"},
+
+        {"name": "save", "default_value": "False"},
+        {"name": "save_dir", "default_value": "/home/sunrise/Desktop/dataset"},
+        {"name": "save_name", "default_value": "12-12"}
     ]
 
     launch = declare_configurable_parameters(node_params)
