@@ -525,6 +525,10 @@ public:
         }
         for (auto &model_config : model_config_["models"])
         {
+            if(!model_config["launch"].get<bool>()){
+                continue;
+            }
+            
             std::string model_name = model_config["model"].get<std::string>();
             std::string model_path = root + model_config["path"].get<std::string>();
             if (model_name == "yolo")

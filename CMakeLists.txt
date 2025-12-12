@@ -35,7 +35,6 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/assets/3rdparty/ThreadPool/include
     ${CMAKE_CURRENT_SOURCE_DIR}/assets/3rdparty/nlohmann/include
     ${CMAKE_CURRENT_SOURCE_DIR}/assets/3rdparty/websocketpp/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/assets/3rdparty/xsimd/include
 )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/assets/3rdparty/dnn/include)

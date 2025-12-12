@@ -46,4 +46,3 @@
 
 #include "rclcpp/rclcpp.hpp"
 
-#include "xsimd/xsimd.hpp"
