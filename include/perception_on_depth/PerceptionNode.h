@@ -504,14 +504,10 @@ public:
             }
         }
         {
-            client = std::make_shared<WebSocketClient>(client_config_["websocket"]);
             std::string uri = fmt::format("ws://{}:{}", client_config_["websocket"]["ip"], client_config_["websocket"]["port"]);
-            client->Connect(uri);
+            client = std::make_shared<WebSocketClient>(uri,client_config_["websocket"]);
+            client->connect();
             RCLCPP_INFO_STREAM(rclcpp::get_logger(""), fmt::format("WebSocketClient connect to \33[32m{}\33[0m", uri));
-
-            key_ = JWTGenerator::generate(
-                client->m_config["req_id"], client->m_config["key"]
-            );
         }
     }
 
@@ -729,7 +725,7 @@ public:
             message["data"] = data;
         }
         if(message["data"].size()){
-            client->SendMsg(message.dump());
+            client->send_message(message.dump());
         }
     }
 #endif
