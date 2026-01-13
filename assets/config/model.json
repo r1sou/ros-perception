@@ -1,30 +1,60 @@
 {
+    "total-task": ["obstacle","recognize","followme"],
     "models": [
         {
             "model": "stereonet",
-            "path": "weights/stereo/DStereoV2.4.0_int16.bin",
-            "param": {
-                "input_H": 352,
-                "input_W": 640
-            },
+            "model_path": "weights/stereo/DStereoV2.4_int8.bin",
+            "tasks": ["obstacle","recognize","followme"],
             "launch": true
         },
         {
             "model": "yolo",
-            "path": "weights/yolo/coco/yolo11n.bin",
-            "param": {
-                "conf_threshold": 0.3,
+            "model_path": "weights/yolo/trash.bin",
+            "params": {
+                "class_names": ["trash"],
+                "conf_threshold": 0.5,
                 "iou_threshold": 0.5
             },
+            "tasks": ["recognize"],
+            "launch": true
+        },
+        {
+            "model": "yolo",
+            "model_path": "weights/yolo/coco.bin",
+            "params": {
+                "conf_threshold": 0.5,
+                "iou_threshold": 0.5
+            },
+            "tasks": ["followme"],
+            "launch": true
+        },
+        {
+            "model": "bytetrack",
+            "params": {
+                "track_thresh": 0.5,
+                "high_thresh": 0.6,
+                "match_thresh": 0.8,
+                "track_buffer": 30
+            },
+            "tasks": ["followme"],
             "launch": true
         }
     ],
     "detect": {
         "person": {
             "name": "person",
+            "obj_type": 3,
+            "obj_code": 0
+        },
+        "trash": {
+            "name": "trash",
             "obj_type": 100,
-            "obj_code": 88,
-            "depth": "center-point"
+            "obj_code": 2
+        }
+    },
+    "track": {
+        "person": {
+            "name": "person"
         }
     }
 }

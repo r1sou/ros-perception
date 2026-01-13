@@ -3,8 +3,8 @@
 <package format="3">
     <name>perception</name>
     <version>1.0.0</version>
-    <description>vision algorithm</description>
-    <maintainer email="un1quer1sou@gmail.com">r1sou</maintainer>
+    <description>robot vision perception</description>
+    <maintainer email="r1sou@r1sou.com">r1sou</maintainer>
     <license>Apache License 2.0</license>
 
     <buildtool_depend>ament_cmake_auto</buildtool_depend>

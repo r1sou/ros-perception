@@ -1,20 +1,20 @@
-#include "perception_on_stereo/PerceptionNode.h"
+#include "node/node.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv){
     rclcpp::init(argc, argv);
-    
-    auto node = std::make_shared<PerceptionNode>();
 
-    node->Start();    
-    rclcpp::WallRate loop_rate(30);
+    auto node = std::make_shared<PerceptionNode>();
     
-    while (rclcpp::ok())
-    {
-        node->Run();   
-        // loop_rate.sleep();
+    node->start();
+
+    rclcpp::WallRate loop_rate(10);
+
+    while(rclcpp::ok()){
+        // node->run();
+        loop_rate.sleep();
     }
 
     rclcpp::shutdown();
+    cv::destroyAllWindows();
     return 0;
 }
